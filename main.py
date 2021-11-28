@@ -18,13 +18,12 @@ data: dict
 with open('California.json', 'r') as f:
     data = json.load(f)
 for county in data:
-    black_total += county[NATIVE]
+    black_total += county[BLACK]
     white_total += county[WHITE]
 print(black_total)
 print(white_total)
 index = 0
 for county in data:
-    index += abs(county[WHITE] / white_total - county[NATIVE] / black_total)
+    index += abs(county[WHITE] / white_total - county[BLACK] / black_total)
 index *= 0.5*100
-index = 100-index
 print(index)
