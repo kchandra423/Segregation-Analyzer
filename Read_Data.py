@@ -5,11 +5,13 @@ from Load_Data import BLACK, WHITE
 
 def thing():
     data: list
-    with open('Californiat.json', 'r') as f:
+    with open('America.json', 'r') as f:
         data = json.load(f)
-    print(f'Dissimilarity index for Cali is : {calculate_dissimilarity(data)}')
-    for county in data:
-        print(f'Dissimilarity index for {county["NAME"]} is : {calculate_dissimilarity(county["Tracts"])}')
+    print(f'Dissimilarity index for America is : {calculate_dissimilarity(data)}')
+    for state in data:
+        print(f'Dissimilarity index for {state["NAME"]} is : {calculate_dissimilarity(state["Counties"])}')
+        for county in state:
+            print(f'Dissimilarity index for {county["NAME"]} is : {calculate_dissimilarity(county["Blocks"])}')
 
 
 def calculate_dissimilarity(data: list) -> int:

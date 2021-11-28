@@ -1,3 +1,4 @@
 census~=0.8.18
 us~=2.0.2
-python-dotenv~=0.19.2
+python-dotenv~=0.15.0
+jsonschema~=3.2.0
