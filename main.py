@@ -1,17 +1,26 @@
 import json
+import os
+from pprint import pprint
 
-# c = Census('60602aa74fd360f49c530acf9b65cc20408c1512')
-# POPULATION = 'B02001_001E'
+from census import Census
+from us import states
+from dotenv import load_dotenv
+
+load_dotenv()
+KEY = os.getenv('API_KEY')
+c = Census(KEY)
+POPULATION = 'B02001_001E'
 WHITE = 'B02001_002E'
 BLACK = 'B02001_003E'
 NATIVE = 'B02001_004E'
 ASIAN = 'B02001_005E'
 PACIFIC_ISLANDER = 'B02001_005E'
-# block_group = c.acs5.state_county(('NAME', WHITE, BLACK, NATIVE, ASIAN, PACIFIC_ISLANDER, POPULATION), states.CA.fips,
-#                                   '*')
-# pprint(block_group)
-# with open("California.json", "w") as outfile:
-#     json.dump(block_group, outfile)
+block_group = c.acs5.state_county(('NAME', WHITE, BLACK, NATIVE, ASIAN, PACIFIC_ISLANDER, POPULATION), states.CA.fips,
+                                  '*')
+
+pprint(block_group)
+with open("California.json", "w") as outfile:
+    json.dump(block_group, outfile)
 black_total = 0
 white_total = 0
 data: dict
