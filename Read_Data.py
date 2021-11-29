@@ -1,26 +1,26 @@
 import json
 
-from Load_Data import BLACK, WHITE
+from Load_Data import BLACK, NATIVE, PACIFIC_ISLANDER, POPULATION
 
 
-def thing():
-    data: list
-    with open('America.json', 'r') as f:
+def thing(state: str):
+    with open(f'dataSets/{state}.json', 'r') as f:
         data = json.load(f)
-    print(f'Dissimilarity index for America is : {calculate_dissimilarity(data)}')
-    for state in data:
-        print(f'Dissimilarity index for {state["NAME"]} is : {calculate_dissimilarity(state["Counties"])}')
-        for county in state:
-            print(f'Dissimilarity index for {county["NAME"]} is : {calculate_dissimilarity(county["Blocks"])}')
+    print(calculate_dissimilarity(data['Counties'], get_brown_share(data), get_pop(data)))
 
 
-def calculate_dissimilarity(data: list) -> int:
-    black_total = 0
-    white_total = 0
-    for sub_level in data:
-        black_total += sub_level[BLACK]
-        white_total += sub_level[WHITE]
+def calculate_dissimilarity(sub_levels: list, brown_total_share: int, total_pop: int):
     index = 0
-    for sub_level in data:
-        index += abs(sub_level[WHITE] / white_total - sub_level[BLACK] / black_total)
+    totals = total_pop * brown_total_share * (1 - brown_total_share)
+    for sub_level in sub_levels:
+        index += get_pop(sub_level) * ((abs(get_brown_share(sub_level) - brown_total_share)) / totals)
+
     return int(index * 0.5 * 100)
+
+
+def get_pop(geo: dict) -> int:
+    return geo[POPULATION]
+
+
+def get_brown_share(geo: dict) -> int:
+    return (geo[BLACK] + geo[NATIVE] + geo[PACIFIC_ISLANDER]) / get_pop(geo)

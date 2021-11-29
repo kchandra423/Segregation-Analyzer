@@ -3,7 +3,7 @@ import Read_Data
 
 
 def main():
-    Load_Data.ok()
+    Read_Data.thing(input('sus'))
 
 
 if __name__ == "__main__":

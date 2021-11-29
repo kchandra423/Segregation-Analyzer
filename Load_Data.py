@@ -1,7 +1,9 @@
 import json
 import os
 from pprint import pprint
-from joblib import Parallel, delayed
+
+from census import Census
+from dotenv import load_dotenv
 
 POPULATION = 'B02001_001E'
 WHITE = 'B02001_002E'
@@ -9,15 +11,6 @@ BLACK = 'B02001_003E'
 NATIVE = 'B02001_004E'
 ASIAN = 'B02001_005E'
 PACIFIC_ISLANDER = 'B02001_005E'
-
-from census import Census
-from dotenv import load_dotenv
-from jsonschema import validate
-
-load_dotenv()
-KEY = os.getenv('API_KEY')
-c = Census(KEY)
-data = c.acs5.state(('NAME', WHITE, BLACK, NATIVE, ASIAN, PACIFIC_ISLANDER, POPULATION), Census.ALL)
 
 # # state
 # schema = {
@@ -48,4 +41,11 @@ def process_state(state):
 
 
 def ok():
-    Parallel(n_jobs=12)(delayed(process_state)(state) for state in data)
+    load_dotenv()
+    KEY = os.getenv('API_KEY')
+    c = Census(KEY)
+    data = c.acs5.us(('NAME', WHITE, BLACK, NATIVE, ASIAN, PACIFIC_ISLANDER, POPULATION))[0]
+    data['States'] = c.acs5.state(('NAME', WHITE, BLACK, NATIVE, ASIAN, PACIFIC_ISLANDER, POPULATION), Census.ALL)
+    with open(f"dataSets/America.json", "w") as outfile:
+        json.dump(data, outfile)
+    # Parallel(n_jobs=12)(delayed(process_state)(state) for state in data)
