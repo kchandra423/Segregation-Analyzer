@@ -1,9 +1,8 @@
-import Load_Data
-import Read_Data
+from Loading import Load_Data
 
 
 def main():
-    Read_Data.thing(input('sus'))
+    Load_Data.ok()
 
 
 if __name__ == "__main__":

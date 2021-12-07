@@ -1,7 +1,7 @@
 import json
 from pprint import pprint
 
-from Load_Data import BLACK, NATIVE, PACIFIC_ISLANDER, POPULATION
+from Loading.Load_Data import BLACK, NATIVE, PACIFIC_ISLANDER, POPULATION
 
 
 def thing(state: str):
@@ -9,7 +9,7 @@ def thing(state: str):
         data = json.load(f)
     dissimilarity = calculate_dissimilarity(data['Counties'], get_brown_share(data), get_pop(data))
     print(dissimilarity)
-    print()
+    countyinput()
 
 
 def calculate_dissimilarity(sub_levels: list, brown_total_share: int, total_pop: int) -> int:
