@@ -4,8 +4,13 @@ from pprint import pprint
 
 from census import Census
 from dotenv import load_dotenv
+POPULATION = 'B02001_001E'
+HISPANIC = 'B03002_012E'
+BLACK_HISPANIC = 'B03002_014E'
+BLACK = 'B02001_003E'
 
-from Loading.CensusConstants import HISPANIC, BLACK, BLACK_HISPANIC, POPULATION
+# black +  hispanic - black and hispanic
+# black or hispanic
 
 load_dotenv()
 KEY = os.getenv('API_KEY')
