@@ -6,7 +6,11 @@ USA = 'US'
 
 
 class SegregationReport:
-
+    # Measures of evenness
+    # dissimilarity
+    # gini
+    # Measures of exposure
+    # Isolation
     def __init__(self, json: dict, sub_levels: str):
         self._dis = 0
         self._isol = 0
