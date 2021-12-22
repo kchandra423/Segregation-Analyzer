@@ -31,12 +31,6 @@ c = Census(KEY)
 
 client = MongoClient(
     f"mongodb+srv://kumar:{MONGO_PSWRD}@segregationdata.porcl.mongodb.net/DemographicData?retryWrites=true&w=majority")
-db = client.get_database('Test')
+# client = MongoClient("mongodb://localhost:27017")
 
-counties = db.get_collection("Counties")
 
-states = db.get_collection('States')
-
-blocks_groups = db.get_collection('Block Groups')
-
-united_states = db.get_collection('United States')

@@ -3,3 +3,5 @@ us~=2.0.2
 python-dotenv~=0.19.2
 jsonschema~=3.2.0
 pymongo~=4.0.1
+numpy~=1.21.5
+matplotlib~=3.5.1
