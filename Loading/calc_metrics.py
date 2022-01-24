@@ -1,4 +1,5 @@
 import pymongo
+from pymongo import UpdateOne
 
 from Loading import client
 
@@ -12,9 +13,58 @@ states = db.get_collection('States')
 blocks_groups = db.get_collection('Blocks')
 
 united_states = db.get_collection('United States')
+educational_institutes = client.get_database('EducationData')
 
 
-def calculate_us():
+def calculate_districts():
+    schools_map = {}
+    district_updates = []
+    school_updates = []
+    districts = educational_institutes.get_collection("Districts")
+    schools = educational_institutes.get_collection("Schools")
+    all_districts = districts.find()
+    all_schools = schools.find()
+    for school in all_schools:
+        schools_map[school['_id']] = school
+    for district in all_districts:
+        dis = 0
+        iso = 0
+        brown = district['BROWN']
+        non_brown = district['POP'] - brown
+
+        contributions = []
+        for school in district['Schools']:
+            school = schools_map[school]
+            dis_contribution = calc_dis_contribution(school['BROWN'], brown, school['POP'] - school['BROWN'], non_brown)
+            iso_contribution = calc_iso_contribution(school['BROWN'], brown, school['POP'] - school['BROWN'])
+            dis += dis_contribution
+            iso += iso_contribution
+            contributions.append([school['_id'], dis_contribution, iso_contribution])
+        for i in range(len(contributions)):
+            contributions[i][1] /= dis if dis > 0 else 1
+            contributions[i][2] /= iso if iso > 0 else 1
+        district_updates.append(UpdateOne({'_id': district['_id']},
+                                          {
+                                              '$set': {
+                                                  'Dissimilarity': dis,
+                                                  'Isolation': iso
+                                              }
+                                          }))
+        for contribution in contributions:
+            school_updates.append(UpdateOne(
+                {'_id': contribution[0]}, {
+                    '$set': {
+                        'Dissimilarity Contribution': contribution[1],
+                        'Isolation Contribution': contribution[2]
+                    }
+                }
+            ))
+    schools.bulk_write(school_updates)
+    districts.bulk_write(district_updates)
+
+
+
+def calculate_us(america):
     america = united_states.find_one()
     america_dis = 0
     america_iso = 0
