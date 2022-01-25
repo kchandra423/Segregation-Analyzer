@@ -20,8 +20,8 @@ def clean_all_data(raw: list):
         clean_data(point)
 
 
-def get_brown(json: dict):
-    return json[HISPANIC] + json[BLACK] - json[BLACK_HISPANIC]
+def get_brown(area: dict):
+    return area[HISPANIC] + area[BLACK] - area[BLACK_HISPANIC]
 
 
 # def calculate_block_dis(america, states, counties, tracts, blocks):
