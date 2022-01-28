@@ -2,16 +2,16 @@ import json
 from math import log
 
 
+# def update_indexes(data: dict, dis, iso):
+#     data['Dissimilarity'] = dis
+#     data['Isolation'] = iso
+
+
 # def update_contributions(data, contributions):
 #     for i in range(len(data)):
 #         data[i]['Dissimilarity Contribution'] = contributions[i][0]
 #
 #         data[i]['Isolation Contribution'] = contributions[i][1]
-
-
-# def update_indexes(data: dict, dis, iso):
-#     data['Dissimilarity'] = dis
-#     data['Isolation'] = iso
 
 
 def export(data, name: str):
@@ -24,7 +24,6 @@ def calc_iso_us(america: dict):
     for state in america['States']:
         america_iso += calc_iso_state(state, america)
     america['Isolation'] = america_iso
-    return america
 
 
 def calc_iso_state(state: dict, us: dict):
@@ -40,18 +39,10 @@ def calc_iso_state(state: dict, us: dict):
 
 
 def calc_iso_county(county: dict, state, us):
-    state_iso_contribution = 0
-    us_iso_contribution = 0
-    county_iso = 0
-    for tract in county['Tracts']:
-        brown = tract['BROWN']
-        non_brown = get_non_brown(tract)
-        county_brown = county['BROWN']
-        state_brown = state['BROWN']
-        us_brown = us['BROWN']
-        county_iso += calc_iso_contribution(brown, county_brown, non_brown)
-        state_iso_contribution += calc_iso_contribution(brown, state_brown, non_brown)
-        us_iso_contribution += calc_iso_contribution(brown, us_brown, non_brown)
+    tracts = county['Tracts']
+    state_iso_contribution = calc_iso(tracts, state)
+    us_iso_contribution = calc_iso(tracts, us)
+    county_iso = calc_iso(tracts, county)
     county['Isolation'] = county_iso
     print(f'Finished {county["NAME"]}')
     return state_iso_contribution, us_iso_contribution
@@ -85,7 +76,6 @@ def calc_div_us(america: dict):
         within += state['POP'] / america['POP'] * calc_div_state(state)
     between = calc_divergence(america['States'], america)
     america['Divergence'] = between + within
-    export(america, "America_indexed")
 
 
 def calc_div_state(state):
@@ -99,29 +89,62 @@ def calc_div_state(state):
 
 
 def calc_div_county(county):
-    div = calc_divergence(county['Tracts'], county)
+    div = 0
+    for tract in county['Tracts']:
+        local_pop_proportion = tract['POP'] / county['POP']
+        result = calc_divergence_contribution(tract, county)
+        tract['Divergence'] = result
+        div += local_pop_proportion * result
+
     county['Divergence'] = div
     return div
 
 
-# def calc_dis_contribution(brown, brown_tot, non_brown, non_brown_tot):
-#     return 0.5 * abs(brown / (brown_tot if brown_tot > 0 else 1) - non_brown / (
-#         non_brown_tot if non_brown_tot > 0 else 1))
+def split(america):
+    states = []
+    counties = []
+    tracts = []
+    for state in america['States']:
+        for county in state['Counties']:
+            for tract in county['Tracts']:
+                tracts.append(tract)
+            county.pop('Tracts')
+            counties.append(county)
+        state.pop('Counties')
+        states.append(state)
+    america.pop('States')
+
+    export(states, 'States')
+    export(america, 'United States')
+    export(counties, 'Counties')
+    export(tracts, 'Tracts')
 
 
-def calc_iso_contribution(brown, brown_tot, non_brown):
-    pop = brown + non_brown
-    return (brown / (brown_tot if brown_tot > 0 else 1)) * (
-            brown / (pop if pop > 0 else 1))
+def calc_iso_contribution(sub_area, area):
+    pop = sub_area['POP']
+    brown = sub_area['BROWN']
+    brown_tot = area['BROWN']
+    return ((brown / (brown_tot if brown_tot > 0 else 1)) * (
+        brown / pop if pop > 0 else 1))
+
+
+def calc_iso(sub_areas, area):
+    iso = 0
+    for sub_area in sub_areas:
+        iso += calc_iso_contribution(sub_area, area)
+
+    proportion = area['BROWN'] / area['POP']
+    if proportion == 0:
+        proportion = 1
+
+    return iso
 
 
 def calc_divergence(sub_areas, area):
     div = 0
     for sub_area in sub_areas:
         local_pop_proportion = sub_area['POP'] / area['POP']
-        div += local_pop_proportion * calc_divergence_contribution(sub_area['BROWN'], area['BROWN'],
-                                                                   get_non_brown(sub_area),
-                                                                   get_non_brown(area))
+        div += local_pop_proportion * calc_divergence_contribution(sub_area, area)
     return div
 
 
@@ -129,18 +152,23 @@ def get_non_brown(area):
     return area['POP'] - area['BROWN']
 
 
-def calc_divergence_contribution(brown, brown_tot, non_brown, non_brown_tot):
-    pop = brown + non_brown
+def calc_divergence_contribution(sub_area, area):
+    pop = sub_area['POP']
+    pop_tot = area['POP']
+    if pop == 0:
+        pop = 1
 
-    brown_proportion = brown / pop
-    brown_proportion_tot = brown_tot / pop
-    brown_proportion_tot = brown_proportion_tot if brown_proportion_tot > 0 else 1
+    brown_proportion = sub_area['BROWN'] / pop
+    brown_proportion_tot = area['BROWN'] / pop_tot
 
-    non_brown_proportion = non_brown / pop
-    non_brown_proportion_tot = non_brown_tot / pop
-    non_brown_proportion_tot = non_brown_proportion_tot if non_brown_proportion_tot > 0 else 1
+    non_brown_proportion = get_non_brown(sub_area) / pop
+    non_brown_proportion_tot = get_non_brown(area) / pop_tot
 
-    brown_div = brown_proportion * log(brown_proportion / brown_proportion_tot, 2)
-    non_brown_div = non_brown_proportion * log(non_brown_proportion / non_brown_proportion_tot, 2)
+    brown_div = 1
+    if brown_proportion != 0 and brown_proportion_tot != 0:
+        brown_div = brown_proportion * log(brown_proportion / brown_proportion_tot, 2)
+    non_brown_div = 1
+    if non_brown_proportion != 0 and non_brown_proportion_tot != 0:
+        non_brown_div = non_brown_proportion * log(non_brown_proportion / non_brown_proportion_tot, 2)
 
     return brown_div + non_brown_div
