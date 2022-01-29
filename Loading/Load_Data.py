@@ -1,5 +1,4 @@
 import json
-import pprint
 
 from census import Census
 
