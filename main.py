@@ -1,52 +1,74 @@
 import json
 
-from matplotlib import pyplot as plt, axes
+from matplotlib import axes, pyplot as plt
 from matplotlib.figure import Figure
 
 import Loading.calc_indexes
+import Loading.calc_statistics
 import Loading.clean_data
 
 
-def main():
-    # f = open('data/America_Blocks.json', 'r')
-    # america = json.load(f)
-    # Loading.calc_indexes.calc_iso_us(america)
-    # Loading.calc_indexes.calc_div_us(america)
-    # with open(f'data/America_Indexed.json', 'w') as fp:
-    #     json.dump(america, fp)
-    # print(Loading.number)
-    # fig: Figure
-    # ax: axes.Axes
-    # fig, ax = plt.subplots()
-    # ax.set_title('Modified Isolation Index for all geography levels in the US')
-    # ax.set_xlabel('Isolation Value')
-    # ax.set_ylabel('Count')
-    # ax.hist(Loading.distribution)
-    # plt.show()
+def plot_distributions(level):
+    fig: Figure
+    ax: axes.Axes
+    fig, ax = plt.subplots()
+    ax.set_title(f'Isolation Index for all geography levels in the US based on {level}')
+    ax.set_xlabel('Isolation Value')
+    ax.set_ylabel('Count')
+    ax.hist(Loading.iso_distribution)
 
-    # Loading.clean_data.clean()
-    f = open('data/America_Indexed.json', 'r')
+    fig, ax = plt.subplots()
+    ax.set_title(f'Divergence Index for all geography levels in the US based on {level}')
+    ax.set_xlabel('Divergence Value')
+    ax.set_ylabel('Count')
+    ax.hist(Loading.div_distribution)
+
+    fig, ax = plt.subplots()
+    ax.set_title(f'Chi2 for all geography levels in the US based on {level}')
+    ax.set_xlabel('Chi2 probability')
+    ax.set_ylabel('Count')
+    ax.hist(Loading.chi_distribution)
+
+    plt.show()
+
+
+def blocks():
+    f = open('data/America_Blocks.json', 'r')
     america = json.load(f)
-    # america['Sub_Areas'] = america.pop('States')
-    # for state in america['Sub_Areas']:
-    #     state['Sub_Areas'] = state.pop('Counties')
-    #     for county in state['Sub_Areas']:
-    #         county['Sub_Areas'] = county.pop('Tracts')
-    #         for tract in county['Sub_Areas']:
-    #             tract['Sub_Areas'] = tract.pop('Blocks')
-    # with open(f'data/America_Blocks.json', 'w') as fp:
-    #     json.dump(america, fp)
+    Loading.calc_indexes.calc_div_us(america)
+    Loading.calc_indexes.calc_iso_us(america)
+    Loading.calc_indexes.calc_chi_us(america)
+    with open(f'data/America_Blocks_Indexed.json', 'w') as fp:
+        json.dump(america, fp)
+    plot_distributions('Blocks')
+    america, states, counties, tracts = Loading.calc_indexes.split(america, 'Blocks')
+    print('___Blocks___')
+    print('__Counties__')
+    Loading.calc_statistics.calc_correlation(counties)
+    print('__States__')
+    Loading.calc_statistics.calc_correlation(states)
 
-    Loading.calc_indexes.split(america)
-    # Loading.Load_Data.load_racial_data()
-    # Loading.calc_indexes.calc_iso_us()
-    # Loading.Update_DB.calculate_us()
-    # Loading.Education_Formatting.clean_education_data()
-    # Loading.calc_metrics.calculate_districts()
 
-    # Loading.calc_statistics.calc_correlation('Counties')
-    # Loading.calc_statistics.calc_correlation('States')
-    # Reading.Read_Data.get_info(input('Enter a state'))
+def tracts():
+    f = open('data/America_Tracts.json', 'r')
+    america = json.load(f)
+    Loading.calc_indexes.calc_div_us(america)
+    Loading.calc_indexes.calc_iso_us(america)
+    Loading.calc_indexes.calc_chi_us(america)
+    with open(f'data/America_Tracts_Indexed.json', 'w') as fp:
+        json.dump(america, fp)
+    plot_distributions('Tracts')
+    america, states, counties, tracts = Loading.calc_indexes.split(america, 'Tracts')
+    print('___Tracts___')
+    print('__Counties__')
+    Loading.calc_statistics.calc_correlation(counties)
+    print('__States__')
+    Loading.calc_statistics.calc_correlation(states)
+
+
+def main():
+    # blocks()
+    tracts()
 
 
 if __name__ == "__main__":

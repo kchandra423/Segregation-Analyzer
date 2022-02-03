@@ -1,6 +1,7 @@
 import json
-from math import log, sqrt
-from statistics import NormalDist
+from math import log
+
+from scipy.stats import chi2
 
 import Loading
 
@@ -8,6 +9,45 @@ import Loading
 def export(data, name: str):
     with open(f'data/{name}.json', 'w') as fp:
         json.dump(data, fp)
+
+
+def calc_chi_us(america: dict):
+    america['Chi2'] = calc_chi(america)
+    for state in america['Sub_Areas']:
+        state['Chi2'] = calc_chi(state)
+        for county in state['Sub_Areas']:
+            county['Chi2'] = calc_chi(county)
+
+
+def calc_chi(area):
+    if not area['Valid']:
+        return
+    value = calc_chi_recursive(area, area['BROWN'] / area['POP'])
+
+    datapoints = value[1]
+    chi = value[0]
+    p = chi2.cdf(chi, datapoints - 1)
+    Loading.chi_distribution.append(p)
+    return p
+
+
+def calc_chi_recursive(area, proportion):
+    if is_lowest_level(area):
+        return calc_chi_contribution(area, proportion), 1
+    chi_contribution = 0
+    datapoints = 0
+    for sub_area in area['Sub_Areas']:
+        value = calc_chi_recursive(sub_area, proportion)
+        chi_contribution += value[0]
+        datapoints += value[1]
+    return chi_contribution, datapoints
+
+
+def calc_chi_contribution(area, proportion):
+    expected = proportion * area['POP']
+    if expected == 0:
+        return 0
+    return pow(area['BROWN'] - expected, 2) / expected
 
 
 def calc_iso_us(america: dict):
@@ -19,10 +59,10 @@ def calc_iso_us(america: dict):
 
 
 def calc_div_us(america: dict):
-    calc_divergence(america)
+    america['Divergence'] = calc_divergence(america)
 
 
-def split(america):
+def split(america, level):
     states = []
     counties = []
     tracts = []
@@ -36,10 +76,11 @@ def split(america):
         states.append(state)
     america.pop('Sub_Areas')
 
-    export(states, 'States')
-    export(america, 'United States')
-    export(counties, 'Counties')
-    export(tracts, 'Tracts')
+    export(states, f'States_{level}')
+    export(america, f'United States_{level}')
+    export(counties, f'Counties_{level}')
+    export(tracts, f'Tracts_{level}')
+    return america, states, counties, tracts
 
 
 def calc_iso_contribution(sub_area, area):
@@ -55,16 +96,8 @@ def calc_iso(area):
         return
     iso = calc_iso_recur(area, area)
     p = area['BROWN'] / area['POP']
-    if p == 0:
-        p = 1
-    sx = sqrt(p * (1 - p) / area['BROWN'] if area['BROWN'] > 0 else 1)
-    distribution = NormalDist(mu=p, sigma=sx)
-    value = distribution.cdf(iso)
-    value = abs(value - 0.5) * 2
-    Loading.distribution.append(value)
-    if value < 0.95 and value != 0:
-        Loading.number += 1
-        print(f"{area['NAME']} with {value}")
+    value = abs(iso - p)
+    Loading.iso_distribution.append(value)
 
     return value
 
@@ -88,6 +121,8 @@ def calc_iso_recur(area, super_area):
 
 
 def calc_divergence(area: dict):
+    if not area['Valid']:
+        return
     return calc_divergence_recur(area, None)
 
 
@@ -95,14 +130,15 @@ def calc_divergence_recur(area: dict, super_area):
     if is_lowest_level(area):
         return calc_divergence_contribution(area, super_area)
     inter_div = 0
-    if area['POP'] == 0:
-        return 0
     for sub_area in area['Sub_Areas']:
         local_pop_proportion = sub_area['POP'] / area['POP']
         sub_area['Divergence'] = calc_divergence_recur(sub_area, area)
         inter_div += local_pop_proportion * sub_area['Divergence']
     between_div = calc_between_divergence(area)
-    return inter_div + between_div
+    value = inter_div + between_div
+    if 'tract' not in area.keys() and area['Valid']:
+        Loading.div_distribution.append(value)
+    return value
 
 
 def calc_between_divergence(area):
@@ -116,6 +152,8 @@ def calc_between_divergence(area):
 
 def calc_divergence_contribution(sub_area, area):
     pop = sub_area['POP']
+    if area is None:
+        return
     pop_tot = area['POP']
     if pop == 0:
         pop = 1
@@ -133,7 +171,7 @@ def calc_divergence_contribution(sub_area, area):
     if non_brown_proportion != 0 and non_brown_proportion_tot != 0:
         non_brown_div = non_brown_proportion * log(non_brown_proportion / non_brown_proportion_tot, 2)
 
-    return brown_div + non_brown_div
+    return min(brown_div + non_brown_div, 1)
 
 
 def get_non_brown(area):

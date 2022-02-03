@@ -30,8 +30,9 @@ MONGO_PSWRD = os.getenv('MONGO_PASSWORD')
 c = Census(KEY)
 
 number = 0
-distribution = []
-
+iso_distribution = []
+div_distribution = []
+chi_distribution = []
 client = MongoClient(
     f"mongodb+srv://kumar:{MONGO_PSWRD}@segregationdata.porcl.mongodb.net/DemographicData?retryWrites=true&w=majority")
 # client = MongoClient("mongodb://localhost:27017")
