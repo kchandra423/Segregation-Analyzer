@@ -1,8 +1,6 @@
 import json
 from math import log
 
-from scipy.stats import chi2
-
 import Loading
 
 
@@ -11,43 +9,59 @@ def export(data, name: str):
         json.dump(data, fp)
 
 
-def calc_chi_us(america: dict):
-    america['Chi2'] = calc_chi(america)
-    for state in america['Sub_Areas']:
-        state['Chi2'] = calc_chi(state)
-        for county in state['Sub_Areas']:
-            county['Chi2'] = calc_chi(county)
+def rank(areas):
+    areas = sorted(areas, key=lambda x: x['Divergence'])
+    for rank, area in enumerate(areas, 1):
+        area['Divergence Rank'] = rank
+
+    areas = sorted(areas, key=lambda x: x['Isolation'])
+    for rank, area in enumerate(areas, 1):
+        area['Isolation Rank'] = rank
+        area['Rank sum'] = area['Isolation Rank'] + area['Divergence Rank']
+
+    areas = sorted(areas, key=lambda x: x['Rank sum'])
+    for rank, area in enumerate(areas, 1):
+        area['Rank'] = rank
+        del area['Rank sum']
 
 
-def calc_chi(area):
-    if not area['Valid']:
-        return
-    value = calc_chi_recursive(area, area['BROWN'] / area['POP'])
-
-    datapoints = value[1]
-    chi = value[0]
-    p = chi2.cdf(chi, datapoints - 1)
-    Loading.chi_distribution.append(p)
-    return p
-
-
-def calc_chi_recursive(area, proportion):
-    if is_lowest_level(area):
-        return calc_chi_contribution(area, proportion), 1
-    chi_contribution = 0
-    datapoints = 0
-    for sub_area in area['Sub_Areas']:
-        value = calc_chi_recursive(sub_area, proportion)
-        chi_contribution += value[0]
-        datapoints += value[1]
-    return chi_contribution, datapoints
+# def calc_chi_us(america: dict):
+#     america['Chi2'] = calc_chi(america)
+#     for state in america['Sub_Areas']:
+#         state['Chi2'] = calc_chi(state)
+#         for county in state['Sub_Areas']:
+#             county['Chi2'] = calc_chi(county)
+#
+#
+# def calc_chi(area):
+#     if not area['Valid']:
+#         return
+#     value = calc_chi_recursive(area, area['BROWN'] / area['POP'])
+#
+#     datapoints = value[1]
+#     chi = value[0]
+#     p = chi2.cdf(chi, datapoints - 1)
+#     Loading.chi_distribution.append(p)
+#     return p
 
 
-def calc_chi_contribution(area, proportion):
-    expected = proportion * area['POP']
-    if expected == 0:
-        return 0
-    return pow(area['BROWN'] - expected, 2) / expected
+# def calc_chi_recursive(area, proportion):
+#     if is_lowest_level(area):
+#         return calc_chi_contribution(area, proportion), 1
+#     chi_contribution = 0
+#     datapoints = 0
+#     for sub_area in area['Sub_Areas']:
+#         value = calc_chi_recursive(sub_area, proportion)
+#         chi_contribution += value[0]
+#         datapoints += value[1]
+#     return chi_contribution, datapoints
+#
+#
+# def calc_chi_contribution(area, proportion):
+#     expected = proportion * area['POP']
+#     if expected == 0:
+#         return 0
+#     return pow(area['BROWN'] - expected, 2) / expected
 
 
 def calc_iso_us(america: dict):
@@ -62,7 +76,17 @@ def calc_div_us(america: dict):
     america['Divergence'] = calc_divergence(america)
 
 
-def split(america, level):
+def calc_div_districts(districts):
+    for district in districts:
+        district['Divergence'] = calc_divergence(district)
+
+
+def calc_iso_districts(districts):
+    for district in districts:
+        district['Isolation'] = calc_iso(district)
+
+
+def split(america):
     states = []
     counties = []
     tracts = []
@@ -75,12 +99,33 @@ def split(america, level):
         state.pop('Sub_Areas')
         states.append(state)
     america.pop('Sub_Areas')
-
-    export(states, f'States_{level}')
-    export(america, f'United States_{level}')
-    export(counties, f'Counties_{level}')
-    export(tracts, f'Tracts_{level}')
     return america, states, counties, tracts
+
+
+def find_state(states, fip):
+    for state in states:
+        if state['state'] == fip:
+            return state
+
+
+def find_county(counties, fip):
+    for county in counties:
+        if county['county'] == fip:
+            return county
+
+
+def rerank_america(america, states, counties):
+    for state in states:
+        america_state = find_state(america['Sub_Areas'], state['state'])
+        america_state['Rank'] = state['Rank']
+        america_state['Divergence Rank'] = state['Divergence Rank']
+        america_state['Isolation Rank'] = state['Isolation Rank']
+    for county in counties:
+        america_state = find_state(america['Sub_Areas'], county['state'])
+        america_county = find_county(america_state['Sub_Areas'], county['county'])
+        america_county['Rank'] = county['Rank']
+        america_county['Divergence Rank'] = county['Divergence Rank']
+        america_county['Isolation Rank'] = county['Isolation Rank']
 
 
 def calc_iso_contribution(sub_area, area):
@@ -93,7 +138,7 @@ def calc_iso_contribution(sub_area, area):
 
 def calc_iso(area):
     if not area['Valid']:
-        return
+        return 0
     iso = calc_iso_recur(area, area)
     p = area['BROWN'] / area['POP']
     value = abs(iso - p)
@@ -136,8 +181,8 @@ def calc_divergence_recur(area: dict, super_area):
         inter_div += local_pop_proportion * sub_area['Divergence']
     between_div = calc_between_divergence(area)
     value = inter_div + between_div
-    if 'tract' not in area.keys() and area['Valid']:
-        Loading.div_distribution.append(value)
+    # if area['Valid']:
+    #     Loading.div_distribution.append(value)
     return value
 
 

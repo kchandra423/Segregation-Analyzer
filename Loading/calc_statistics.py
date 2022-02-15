@@ -11,8 +11,8 @@ def calc_correlation(areas):
     proportion = []
     for area in areas:
         if area['Valid']:
-            divs.append(area['Divergence'])
-            isos.append(area['Isolation'])
+            divs.append(area['Divergence Rank'])
+            isos.append(area['Isolation Rank'])
             proportion.append(area['BROWN'] / area['POP'])
             names.append(area['NAME'])
     fig, ax = plt.subplots()
