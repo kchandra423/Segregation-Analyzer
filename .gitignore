@@ -152,3 +152,8 @@ fabric.properties
 
 .DS_Store
 *.DS_Store
+/data/
+/scraps/
+/data/geojson/
+/data/raw_blocks/
+*.json

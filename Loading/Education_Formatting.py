@@ -76,7 +76,7 @@ def clean_schools():
 
         result = find_district(school['District_ID'])
         if result is None:
-            # pprint.pprint(school)
+            pprint.pprint(school)
             continue
         else:
             result['POP'] += school['POP']
